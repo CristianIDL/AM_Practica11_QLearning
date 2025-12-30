@@ -207,10 +207,10 @@ def main():
             else:
                 print("\n!!! Opción no válida")
             
-            input("\nPresione Enter para continuar...")
+            input("\nPresiona Enter para continuar...")
             
         except KeyboardInterrupt:
-            print("\n\n¡Hasta luego!\n")
+            print("\n\nHasta luego :D\n")
             break
         except Exception as e:
             print(f"\n!!! Error inesperado: {e}")
