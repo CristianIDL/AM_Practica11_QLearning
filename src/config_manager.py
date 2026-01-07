@@ -1,11 +1,13 @@
 """
 Módulo para gestionar la configuración de caracteres del laberinto.
+Actualizado para soportar habitaciones de dungeon.
 Autor: CristianIDL
-Fecha: Diciembre 2025
+Fecha: Enero 2025
 """
 
 import os
 from typing import Dict, List, Optional
+
 
 class ConfigManager:
     """
@@ -13,8 +15,8 @@ class ConfigManager:
     que define los caracteres para cada tipo de casilla.
     """
     
-    # Tipos de casillas
-    REQUIRED_TYPES = ['START', 'GOAL', 'WALL', 'PATH', 'TREASURE', 'PIT']
+    # Tipos de casillas requeridos (actualizado para dungeons)
+    REQUIRED_TYPES = ['START', 'GOAL', 'WALL', 'PATH', 'TREASURE', 'PIT', 'ROOM_EXIT']
     
     def __init__(self, config_path: str = 'config/casillas.txt'):
         """
@@ -41,9 +43,9 @@ class ConfigManager:
             with open(self.config_path, 'r', encoding='utf-8') as file:
                 lines = [line.strip() for line in file.readlines() if line.strip()]
             
-            # Validar que tenemos exactamente 6 caracteres
-            if len(lines) != 6:
-                raise ValueError(f"Se esperaban 6 caracteres, se encontraron {len(lines)}")
+            # Validar que tenemos exactamente 7 caracteres
+            if len(lines) != 7:
+                raise ValueError(f"Se esperaban 7 caracteres, se encontraron {len(lines)}")
             
             # Crear mapeos
             self.char_mapping = {
@@ -52,28 +54,29 @@ class ConfigManager:
                 'WALL': lines[2],
                 'PATH': lines[3],
                 'TREASURE': lines[4],
-                'PIT': lines[5]
+                'PIT': lines[5],
+                'ROOM_EXIT': lines[6]
             }
             
             # Crear mapeo inverso (caracter -> tipo)
             self.reverse_mapping = {v: k for k, v in self.char_mapping.items()}
             
             # Validar que no hay caracteres duplicados
-            if len(self.reverse_mapping) != 6:
+            if len(self.reverse_mapping) != 7:
                 raise ValueError("Hay caracteres duplicados en la configuración")
             
-            print("Configuración cargada exitosamente")
+            print("✓ Configuración cargada exitosamente")
             self._print_mapping()
             return True
             
         except FileNotFoundError as e:
-            print(f"Error: {e}")
+            print(f"✗ Error: {e}")
             return False
         except ValueError as e:
-            print(f"Error de validación: {e}")
+            print(f"✗ Error de validación: {e}")
             return False
         except Exception as e:
-            print(f"Error inesperado: {e}")
+            print(f"✗ Error inesperado: {e}")
             return False
     
     def get_char(self, tile_type: str) -> Optional[str]:
@@ -117,7 +120,7 @@ class ConfigManager:
         print("\nMapeo de caracteres:")
         print("-" * 30)
         for tile_type, char in self.char_mapping.items():
-            print(f"  {tile_type:12} : '{char}'")
+            print(f"  {tile_type:12} → '{char}'")
         print("-" * 30)
     
     def create_default_config(self):
@@ -126,13 +129,14 @@ class ConfigManager:
         """
         os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
         
-        default_chars = ['S', 'G', '#', "'", 'T', 'X']
+        # Caracteres por defecto (ahora 7)
+        default_chars = ['S', 'G', '#', "'", 'T', 'X', 'R']
         
         with open(self.config_path, 'w', encoding='utf-8') as file:
             for char in default_chars:
                 file.write(f"{char}\n")
         
-        print(f"Archivo de configuración creado en: {self.config_path}")
+        print(f"✓ Archivo de configuración creado en: {self.config_path}")
     
     def get_all_chars(self) -> List[str]:
         """
@@ -142,3 +146,26 @@ class ConfigManager:
             Lista con todos los caracteres
         """
         return list(self.char_mapping.values())
+
+
+# Ejemplo de uso
+if __name__ == "__main__":
+    # Crear instancia del gestor
+    config = ConfigManager()
+    
+    # Intentar crear configuración por defecto si no existe
+    if not os.path.exists(config.config_path):
+        print("Creando archivo de configuración por defecto...")
+        config.create_default_config()
+    
+    # Cargar configuración
+    if config.load_config():
+        print("\n--- Pruebas de funcionalidad ---")
+        
+        # Obtener caracteres
+        print(f"\nCarácter para START: '{config.get_char('START')}'")
+        print(f"Carácter para ROOM_EXIT: '{config.get_char('ROOM_EXIT')}'")
+        
+        # Obtener tipos
+        print(f"\nTipo para 'R': {config.get_type('R')}")
+        print(f"Tipo para '#': {config.get_type('#')}")

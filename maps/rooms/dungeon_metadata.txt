@@ -1,0 +1,102 @@
+============================================================
+  METADATOS DEL DUNGEON
+============================================================
+
+Semilla del dungeon: 999860
+Número de habitaciones: 12
+
+Layout del dungeon:
+  [1,  2,  3,  4]
+  [8,  7,  6,  5]
+  [9, 10, 11, 12]
+
+Recorrido: 1→2→3→4→5→6→7→8→9→10→11→12
+
+============================================================
+  INFORMACIÓN DE CADA HABITACIÓN
+============================================================
+
+Habitación 1:
+  Semilla:       1000860
+  Dirección:     DERECHA
+  Entrada en:    ALEATORIA
+  Start (S):     (8, 0)
+  Salidas (R):   16
+
+Habitación 2:
+  Semilla:       1001860
+  Dirección:     DERECHA
+  Entrada en:    8
+  Start (S):     (8, 0)
+  Salidas (R):   16
+
+Habitación 3:
+  Semilla:       1002860
+  Dirección:     DERECHA
+  Entrada en:    8
+  Start (S):     (8, 0)
+  Salidas (R):   16
+
+Habitación 4:
+  Semilla:       1003862
+  Dirección:     ABAJO
+  Entrada en:    8
+  Start (S):     (8, 0)
+  Salidas (R):   16
+
+Habitación 5:
+  Semilla:       1004860
+  Dirección:     IZQUIERDA
+  Entrada en:    10
+  Start (S):     (0, 10)
+  Salidas (R):   16
+
+Habitación 6:
+  Semilla:       1005860
+  Dirección:     IZQUIERDA
+  Entrada en:    6
+  Start (S):     (6, 17)
+  Salidas (R):   16
+
+Habitación 7:
+  Semilla:       1006860
+  Dirección:     IZQUIERDA
+  Entrada en:    6
+  Start (S):     (6, 17)
+  Salidas (R):   16
+
+Habitación 8:
+  Semilla:       1007860
+  Dirección:     ABAJO
+  Entrada en:    11
+  Start (S):     (11, 17)
+  Salidas (R):   16
+
+Habitación 9:
+  Semilla:       1008860
+  Dirección:     DERECHA
+  Entrada en:    6
+  Start (S):     (0, 6)
+  Salidas (R):   16
+
+Habitación 10:
+  Semilla:       1009860
+  Dirección:     DERECHA
+  Entrada en:    1
+  Start (S):     (1, 0)
+  Salidas (R):   16
+
+Habitación 11:
+  Semilla:       1010860
+  Dirección:     DERECHA
+  Entrada en:    11
+  Start (S):     (11, 0)
+  Salidas (R):   16
+
+Habitación 12:
+  Semilla:       1011860
+  Dirección:     FINAL
+  Entrada en:    9
+  Start (S):     (9, 0)
+  Goal (G):      (7, 16)
+

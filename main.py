@@ -1,172 +1,234 @@
 """
-Punto de entrada principal del generador de laberintos.
+Generador de Dungeons para Q-Learning
+Interfaz principal para generación de habitaciones 18x18
+
+Autor: [Tu nombre]
+Fecha: Enero 2025
 """
 
 import os
 from src.config_manager import ConfigManager
-from src.prints import crear_headline, clear_screen, show_configuration, show_menu
-from src.map_generator import MapGenerator
-from src.map_validator import MapValidator
+from src.room_generator import RoomGenerator
+from src.dungeon_manager import DungeonManager
+from src.room_validator import RoomValidator
 
-def generate_single_map(config: ConfigManager):
-    """Genera un mapa individual con parámetros personalizados."""
-    print("\n--- GENERACIÓN DE MAPA INDIVIDUAL ---\n")
+
+def show_menu():
+    """Muestra el menú principal."""
+    print("\n" + "="*60)
+    print("  GENERADOR DE DUNGEONS - Q-LEARNING")
+    print("  Habitaciones: 18x18 (16x16 interior)")
+    print("="*60)
+    print("\n1. Generar habitación individual")
+    print("2. Generar dungeon completo (12 habitaciones)")
+    print("3. Validar una habitación existente")
+    print("4. Ver configuración")
+    print("5. Salir")
+    print("\n" + "="*60)
+
+
+def generate_single_room(config: ConfigManager):
+    """Genera una habitación individual."""
+    print("\n--- GENERACIÓN DE HABITACIÓN INDIVIDUAL ---\n")
     
     try:
-        # Solicitar parámetros
-        seed_input = input("Semilla (Enter para aleatorio): ").strip()
+        room_id = int(input("ID de habitación (1-12): "))
+        
+        if not (1 <= room_id <= 12):
+            print("✗ ID debe estar entre 1 y 12")
+            return
+        
+        # Configurar según el tipo de habitación
+        if room_id == 1:
+            print("\nHabitación 1 (inicial): S aleatorio")
+            direccion_salida = 'DERECHA'
+            posicion_entrada = None
+        elif room_id == 12:
+            print("\nHabitación 12 (final): Incluye G")
+            direccion_salida = None
+            entrada_str = input("Posición de entrada (1-16) [8]: ") or "8"
+            posicion_entrada = int(entrada_str)
+        else:
+            print("\nHabitación intermedia")
+            direcciones = {'1': 'DERECHA', '2': 'ABAJO', '3': 'IZQUIERDA', '4': 'ARRIBA'}
+            print("Dirección de salida:")
+            print("  1. DERECHA")
+            print("  2. ABAJO")
+            print("  3. IZQUIERDA")
+            print("  4. ARRIBA")
+            dir_choice = input("Seleccione (1-4): ")
+            direccion_salida = direcciones.get(dir_choice, 'DERECHA')
+            
+            entrada_str = input("Posición de entrada (1-16) [8]: ") or "8"
+            posicion_entrada = int(entrada_str)
+        
+        # Parámetros de generación
+        seed_input = input("\nSemilla (Enter para aleatorio): ").strip()
         seed = int(seed_input) if seed_input else None
         
-        wall_density = float(input("Densidad de paredes (0.0 - 0.5) [0.2]: ") or "0.2")
+        wall_density = float(input("Densidad de paredes (0.0-0.4) [0.2]: ") or "0.2")
         treasure_count = int(input("Número de tesoros [3]: ") or "3")
         pit_count = int(input("Número de pozos [3]: ") or "3")
         
-        # Generar mapa
-        generator = MapGenerator(config, seed=seed)
-        validator = MapValidator(config)
+        # Generar habitación
+        print("\nGenerando habitación...")
+        room = RoomGenerator(
+            config=config,
+            room_id=room_id,
+            direccion_salida=direccion_salida,
+            posicion_entrada=posicion_entrada,
+            seed=seed
+        )
         
-        max_attempts = 100
+        validator = RoomValidator(config)
+        max_attempts = 50
         attempts = 0
         
-        print("\nGenerando mapa válido...")
-        
         while attempts < max_attempts:
-            map_grid = generator.generate_map(
+            room.generate_room(
                 wall_density=wall_density,
                 treasure_count=treasure_count,
                 pit_count=pit_count
             )
             
-            if validator.is_valid_map(map_grid):
-                print(f"Mapa válido generado (intento {attempts + 1})")
+            if validator.is_valid_room(room.map_grid):
+                print(f"✓ Habitación válida generada (intento {attempts + 1})")
                 break
             
             attempts += 1
-            generator = MapGenerator(config, seed=None)  # Nueva semilla
+            room = RoomGenerator(
+                config=config,
+                room_id=room_id,
+                direccion_salida=direccion_salida,
+                posicion_entrada=posicion_entrada,
+                seed=None
+            )
         
         if attempts >= max_attempts:
-            print("!!! No se pudo generar un mapa válido después de muchos intentos")
+            print("✗ No se pudo generar una habitación válida")
             return
         
-        # Mostrar mapa
-        generator.print_map()
-        validator.print_statistics(map_grid)
+        # Mostrar resultado
+        room.print_room()
+        validator.print_statistics(room.map_grid)
         
-        # Preguntar si desea visualizar el camino
         show_path = input("\n¿Mostrar camino óptimo? (s/n): ").lower()
         if show_path == 's':
-            validator.visualize_path(map_grid)
+            validator.visualize_path(room.map_grid)
         
-        # Preguntar si desea guardar
-        save = input("\n¿Guardar mapa? (s/n): ").lower()
+        # Guardar
+        save = input("\n¿Guardar habitación? (s/n): ").lower()
         if save == 's':
-            filename = input("Nombre del archivo [mapa_custom.txt]: ") or "mapa_custom.txt"
-            filepath = f"maps/generated/{filename}"
-            generator.save_map(filepath)
+            filename = f"maps/rooms/room_{room_id:02d}.txt"
+            room.save_room(filename)
         
     except ValueError as e:
-        print(f"!!! Error en los parámetros: {e}")
+        print(f"✗ Error en los parámetros: {e}")
     except KeyboardInterrupt:
-        print("\n\nOperación cancelada por el usuario")
+        print("\n\nOperación cancelada")
 
 
-def generate_batch_maps(config: ConfigManager):
-    """Genera múltiples mapas en lote."""
-    print("\n--- GENERACIÓN DE MAPAS EN LOTE ---\n")
+def generate_full_dungeon(config: ConfigManager):
+    """Genera el dungeon completo de 12 habitaciones."""
+    print("\n--- GENERACIÓN DE DUNGEON COMPLETO ---\n")
     
     try:
-        num_maps = int(input("¿Cuántos mapas desea generar?: "))
-        wall_density = float(input("Densidad de paredes (0.0 - 0.5) [0.2]: ") or "0.2")
-        treasure_count = int(input("Número de tesoros [3]: ") or "3")
-        pit_count = int(input("Número de pozos [3]: ") or "3")
+        seed_input = input("Semilla del dungeon (Enter para aleatorio): ").strip()
+        seed = int(seed_input) if seed_input else None
         
-        validator = MapValidator(config)
+        wall_density = float(input("Densidad de paredes (0.0-0.4) [0.2]: ") or "0.2")
+        treasure_count = int(input("Tesoros por habitación [3]: ") or "3")
+        pit_count = int(input("Pozos por habitación [3]: ") or "3")
         
-        print(f"\nGenerando {num_maps} mapas válidos...\n")
+        validate = input("¿Validar todas las habitaciones? (s/n) [s]: ").lower()
+        validate_all = validate != 'n'
         
-        successful = 0
-        total_attempts = 0
+        # Crear y generar dungeon
+        dungeon = DungeonManager(config, dungeon_seed=seed)
         
-        for i in range(num_maps):
-            attempts = 0
-            max_attempts = 100
+        dungeon.generate_dungeon(
+            wall_density=wall_density,
+            treasure_count=treasure_count,
+            pit_count=pit_count,
+            validate_all=validate_all
+        )
+        
+        # Mostrar resumen
+        dungeon.print_dungeon_summary()
+        
+        # Guardar
+        save = input("\n¿Guardar todas las habitaciones? (s/n): ").lower()
+        if save == 's':
+            dungeon.save_all_rooms()
+            dungeon.save_dungeon_metadata()
             
-            while attempts < max_attempts:
-                generator = MapGenerator(config, seed=None)
-                map_grid = generator.generate_map(
-                    wall_density=wall_density,
-                    treasure_count=treasure_count,
-                    pit_count=pit_count
-                )
-                
-                total_attempts += 1
-                
-                if validator.is_valid_map(map_grid):
-                    filename = f"maps/generated/mapa_{i+1:03d}.txt"
-                    generator.save_map(filename)
-                    successful += 1
-                    print(f"  ✓ Mapa {i+1}/{num_maps} generado (semilla: {generator.seed})")
-                    break
-                
-                attempts += 1
-            
-            if attempts >= max_attempts:
-                print(f"  !!! No se pudo generar el mapa {i+1}")
+            assemble = input("¿Ensamblar dungeon completo en un archivo? (s/n): ").lower()
+            if assemble == 's':
+                dungeon.assemble_full_dungeon()
         
-        print(f"\n{'='*50}")
-        print(f"Resultados:")
-        print(f"  Mapas generados: {successful}/{num_maps}")
-        print(f"  Intentos totales: {total_attempts}")
-        print(f"  Tasa de éxito: {successful/total_attempts*100:.1f}%")
-        print(f"{'='*50}")
+        # Mostrar habitación de ejemplo
+        show_example = input("\n¿Ver habitación 1 como ejemplo? (s/n): ").lower()
+        if show_example == 's':
+            dungeon.rooms[1].print_room()
         
     except ValueError as e:
-        print(f"!!! Error en los parámetros: {e}")
+        print(f"✗ Error en los parámetros: {e}")
     except KeyboardInterrupt:
-        print("\n\nOperación cancelada por el usuario")
+        print("\n\nOperación cancelada")
 
 
-def validate_existing_map(config: ConfigManager):
-    """Valida un mapa existente."""
-    print("\n--- VALIDACIÓN DE MAPA ---\n")
+def validate_existing_room(config: ConfigManager):
+    """Valida una habitación existente."""
+    print("\n--- VALIDACIÓN DE HABITACIÓN ---\n")
     
-    filename = input("Nombre del archivo (en maps/generated/): ")
-    filepath = f"maps/generated/{filename}"
+    filename = input("Nombre del archivo (en maps/rooms/): ")
+    filepath = f"maps/rooms/{filename}"
     
     if not os.path.exists(filepath):
-        print(f"!!! No se encontró el archivo: {filepath}")
+        print(f"✗ No se encontró el archivo: {filepath}")
         return
     
     try:
-        # Leer el mapa
+        # Leer habitación
         with open(filepath, 'r', encoding='utf-8') as f:
             lines = [line.rstrip('\n') for line in f.readlines()]
         
-        # Convertir a numpy array
         import numpy as np
-        map_grid = np.array([list(line) for line in lines])
+        room_grid = np.array([list(line) for line in lines])
         
         # Validar
-        validator = MapValidator(config)
+        validator = RoomValidator(config)
         
-        print("\nValidando mapa...\n")
-        is_valid = validator.is_valid_map(map_grid, verbose=True)
+        print("\nValidando habitación...\n")
+        is_valid = validator.is_valid_room(room_grid, verbose=True)
         
         if is_valid:
-            validator.print_statistics(map_grid)
+            validator.print_statistics(room_grid)
             
             show_path = input("\n¿Mostrar camino óptimo? (s/n): ").lower()
             if show_path == 's':
-                validator.visualize_path(map_grid)
-        
+                validator.visualize_path(room_grid)
+    
     except Exception as e:
-        print(f"!!! Error al procesar el archivo: {e}")
+        print(f"✗ Error al procesar el archivo: {e}")
+
+
+def show_configuration(config: ConfigManager):
+    """Muestra la configuración actual."""
+    print("\n--- CONFIGURACIÓN ACTUAL ---\n")
+    config._print_mapping()
+    print("\nRuta del archivo: " + config.config_path)
+    print("\nDimensiones de habitaciones: 18x18 (16x16 interior)")
+    print("Layout del dungeon:")
+    print("  [1,  2,  3,  4]")
+    print("  [8,  7,  6,  5]")
+    print("  [9, 10, 11, 12]")
+    print("\nRecorrido: 1→2→3→4→5→6→7→8→9→10→11→12")
+    input("\nPresione Enter para continuar...")
+
 
 def main():
     """Función principal del programa."""
-
-    print(crear_headline("GENERADOR DE LABERINTOS"))
-
     # Inicializar configuración
     config = ConfigManager('config/casillas.txt')
     
@@ -177,14 +239,15 @@ def main():
     
     # Cargar configuración
     if not config.load_config():
-        print("\n!!! Error al cargar la configuración")
+        print("\n✗ Error al cargar la configuración")
         print("Verifique el archivo config/casillas.txt")
+        print("Debe contener 7 líneas (S, G, #, ', T, X, R)")
         return
     
     # Crear directorios necesarios
-    os.makedirs('maps/generated', exist_ok=True)
+    os.makedirs('maps/rooms', exist_ok=True)
+    os.makedirs('maps/dungeons', exist_ok=True)
     os.makedirs('data/datasets', exist_ok=True)
-    os.makedirs('logs', exist_ok=True)
     
     # Bucle principal
     while True:
@@ -194,26 +257,26 @@ def main():
             opcion = input("\nSeleccione una opción: ").strip()
             
             if opcion == '1':
-                generate_single_map(config)
+                generate_single_room(config)
             elif opcion == '2':
-                generate_batch_maps(config)
+                generate_full_dungeon(config)
             elif opcion == '3':
-                validate_existing_map(config)
+                validate_existing_room(config)
             elif opcion == '4':
                 show_configuration(config)
             elif opcion == '5':
                 print("\n¡Hasta luego!\n")
                 break
             else:
-                print("\n!!! Opción no válida")
+                print("\n✗ Opción no válida")
             
-            input("\nPresiona Enter para continuar...")
+            input("\nPresione Enter para continuar...")
             
         except KeyboardInterrupt:
-            print("\n\nHasta luego :D\n")
+            print("\n\n¡Hasta luego!\n")
             break
         except Exception as e:
-            print(f"\n!!! Error inesperado: {e}")
+            print(f"\n✗ Error inesperado: {e}")
             input("\nPresione Enter para continuar...")
 
 
